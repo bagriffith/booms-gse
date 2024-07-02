@@ -1,0 +1,84 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "booms-gse"
+dynamic = ["version"]
+description = 'Interface tools for the BOOMS flight computer and instruments.'
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = []
+authors = [
+  { name = "Brady Griffith", email = "bagriff@uw.edu" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "click",
+  "pyserial",
+  "numpy",
+  "matplotlib",
+  "crcmod",
+  "astropy",
+  "bokeh==2.4.0"
+]
+
+[project.urls]
+Documentation = ""
+Issues = ""
+Source = ""
+
+[project.scripts]
+bgse-imag = "booms_gse.instrument_gse.cli:imager"
+bgse-spec = "booms_gse.instrument_gse.cli:spectrometer"
+bgse-computer = "booms_gse.computer_gse.cli:gse"
+bgse-mm-gse = "booms_gse.computer_gse.cli:mm_gse"
+
+[tool.hatch.version]
+path = "src/booms_gse/__about__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "coverage[toml]>=6.5",
+  "pytest",
+]
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.9", "3.10", "3.11"]
+
+[tool.hatch.envs.types]
+dependencies = [
+  "mypy>=1.0.0",
+]
+
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/booms_gse}"
+
+[tool.coverage.run]
+source_pkgs = ["booms_gse"]
+branch = true
+parallel = true
+omit = [
+  "src/booms_gse/__about__.py",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/booms_gse"]
+
+[tool.coverage.paths]
+booms_gse = ["src/booms_gse", "*/booms-gse/src/booms_gse"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
