@@ -19,16 +19,59 @@ logger.setLevel(logging.INFO)
 
 async def write_with_lock(file, data, lock):
     async with lock:
-        file.write(data[16:])
+        file.write(data)
         file.flush()
 
 
-class FlightComputerFileLogger(asyncio.DatagramProtocol):
+class FlightComputerReciever(asyncio.DatagramProtocol):
+    def __init__(self, processors=None):
+        if processors is None:
+            processors = list()
+        self.processors = processors
+        self.transport = None
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+        for p in self.processors:
+            p.setup()
+
+    def connection_lost(self, exc):
+        logger.info('Lost UDP connection')
+        if exc is not None:
+            logger.warning('UDP closed with exception.', exc_info=exc)
+
+        for p in self.processors:
+            p.close()
+
+    def datagram_received(self, data, addr):
+        logger.debug('Datagram received from %s', addr)
+
+        for p in self.processors:
+            p.receive(data)
+
+    def error_received(self, exc):
+        logger.warning('Flight Computer UDP error received', exc_info=exc)
+
+
+class PacketProcessor:
+    def setup(self):
+        pass
+
+    def receive(self, packet):
+        pass
+
+    def close(self):
+        pass
+
+
+class PacketLogger(PacketProcessor):
     IMAG_IDS = set([0xC0 + i for i in range(7)])
     SPEC_IDS = set([0xD0 + i for i in range(3)])
 
     def __init__(self, path_root=None, path_dict=None, fd_dict=None):
         if path_root is not None:
+            Path(path_root).mkdir(exist_ok=True)
             if path_dict is not None:
                 raise ValueError('Only one output file option may be selected')
 
@@ -48,7 +91,9 @@ class FlightComputerFileLogger(asyncio.DatagramProtocol):
             fd_dict = dict()
             for device_id, path in path_dict.items():
                 logger.debug('Creating %s', hex(device_id))
-                fd_dict[device_id] = os.open(path, os.O_CREAT|os.O_WRONLY|os.O_NONBLOCK)  # Get the fd
+                # Get the fd
+                fd_dict[device_id] = \
+                    os.open(path, os.O_CREAT | os.O_WRONLY | os.O_NONBLOCK)
 
         if set(fd_dict.keys()) > self.SPEC_IDS.union(self.IMAG_IDS):
             raise ValueError('Invalid device id provided.')
@@ -56,51 +101,33 @@ class FlightComputerFileLogger(asyncio.DatagramProtocol):
         self.f_lock = asyncio.Lock()
         logger.debug('File Descriptors: %s', self.fds)
         self.open_files = {k: None for k in self.fds.keys()}
-        self.transport = None
 
-    def connection_made(self, transport):
-        self.transport = transport
-        # try:
-        #   self.transport.sendto(COMMAND_PACKET, (COMPUTER_IP, COMMAND_PORT))
+    def setup(self):
         self.open_files.update(
             {device_id: os.fdopen(fd, "wb")
              for device_id, fd in self.fds.items()})
 
-    def connection_lost(self, exc):
-        logger.info('Lost UDP connection')
-        if exc is not None:
-            logger.warning('UDP closed with exception.', exc_info=exc)
-
+    def close(self):
         # Cleanup Open Files
         for device_id, file in self.open_files.items():
             if file is not None:
                 file.close()
             self.open_files[device_id] = None
 
-    def pause_writing(self):
-        pass
-
-    def resume_writing(self):
-        pass
-
-    def datagram_received(self, data, addr):
-        logger.debug('Datagram received from %s', addr)
-
+    def receive(self, packet):
         # Write to files
-        id_byte = data[4]
+        id_byte = packet[4]
         logger.debug('ID Byte: %s', hex(id_byte))
 
         if (file := self.open_files.get(id_byte, None)):
-            asyncio.create_task(write_with_lock(file, data, self.f_lock))
+            asyncio.create_task(
+                write_with_lock(file, packet[16:], self.f_lock))
         else:
             pass
             # logger.warning('File for %s is closed', hex(id_byte))
 
-    def error_received(self, exc):
-        logger.warning('Flight Computer UDP error received', exc_info=exc)
 
-
-class FlightComputerSerial(FlightComputerFileLogger):
+class PacketPsuedoSerial(PacketLogger):
     def __init__(self):
         self.serial = dict()
 
@@ -113,27 +140,16 @@ class FlightComputerSerial(FlightComputerFileLogger):
         super().__init__(fd_dict=fd_dict)
 
 
-async def run_serial(ip_addr, port, from_file=None):
+async def receive_packets(ip_addr, port, processors=None, from_file=None):
     loop = asyncio.get_running_loop()
     on_con_lost = loop.create_future()
 
+    def create_endpoint(processors=processors):
+        return FlightComputerReciever(processors)
+
     transport, comp_ser = \
-        await loop.create_datagram_endpoint(FlightComputerSerial,
+        await loop.create_datagram_endpoint(create_endpoint,
                                             local_addr=(ip_addr, port))
-
-    spec_ports = ' '.join([f'spec_{x&0x0F}:{comp_ser.serial[x]}'
-                           for x in comp_ser.SPEC_IDS])
-    imag_ports = ' '.join([f'imag_{x&0x0F}:{comp_ser.serial[x]}'
-                           for x in comp_ser.IMAG_IDS])
-
-    for dev_type, device_list in zip(['spec', 'imag'],
-                                     [comp_ser.SPEC_IDS, comp_ser.IMAG_IDS]):
-        for device_id in device_list:
-            link_path = BOOMS_SERIAL_DIR / f'{dev_type}_{device_id & 0x0F}'
-            # link_path.symlink_to(comp_ser.serial[device_id])
-
-    logger.info('Spectrometers: %s', spec_ports)
-    logger.info('Imagers: %s', imag_ports)
 
     try:
         if from_file is not None:
@@ -142,38 +158,7 @@ async def run_serial(ip_addr, port, from_file=None):
         else:
             await on_con_lost
     except asyncio.exceptions.CancelledError:
-        logger.debug('Cancelled', stack_info=True, exc_info=True)
-    finally:
-        transport.close()
-        for dev_type, device_list in zip(['spec', 'imag'],
-                                         [comp_ser.SPEC_IDS,
-                                          comp_ser.IMAG_IDS]):
-            for device_id in device_list:
-                link_path = BOOMS_SERIAL_DIR / f'{dev_type}_{device_id & 0x0F}'
-                # link_path.unlink()
-                logger.debug('Unlinked %s', link_path)
-
-
-async def run_file_logger(path_root, ip_addr, port, from_file=None):
-    loop = asyncio.get_running_loop()
-    on_con_lost = loop.create_future()
-
-    path_root.mkdir(parents=True, exist_ok=True)
-    logger.debug('Made %s', path_root)
-
-    transport, comp_ser = \
-        await loop.create_datagram_endpoint(
-            lambda: FlightComputerFileLogger(path_root=path_root),
-            local_addr=(ip_addr, port))
-
-    try:
-        if from_file is not None:
-            await start_playback(from_file, speed=3600, port=port)
-            await asyncio.sleep(1.0)  # Wait for buffers to process.
-        else:
-            await on_con_lost
-    except asyncio.exceptions.CancelledError as exc:
-        logger.debug(exc, stack_info=True, exc_info=True)
+        logger.debug('Cancelled', stack_info=True, exc_info=True)            
     finally:
         transport.close()
 
