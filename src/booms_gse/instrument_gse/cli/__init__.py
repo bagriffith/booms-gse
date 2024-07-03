@@ -1,4 +1,5 @@
 import click
+
 from .. import imager as bgse_imag
 from .. import spectrometer as bgse_spec
 
@@ -36,3 +37,7 @@ def spectrometer(data_source, **kwargs):
     rate = kwargs['speed'] if kwargs['replay'] else None 
     bgse_spec.run_gse(data_source, rate,
                       save=kwargs['save'], live=kwargs['replay'])
+
+
+if __name__ == '__main__':
+    gse()
