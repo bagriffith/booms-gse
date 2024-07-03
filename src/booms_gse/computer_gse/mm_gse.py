@@ -39,7 +39,8 @@ DEFAULT_REMOTE_IP = "192.168.2.101"
 DEFAULT_SELF_IP = "192.168.2.1"
 
 CMD_PORT = 50501
-TM_PORT = 20501
+# TM_PORT = 20501
+TM_PORT = 20502
 
 #A function to handle the bitfield
 def split(word):

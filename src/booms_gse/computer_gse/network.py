@@ -34,7 +34,7 @@ class FlightComputerReciever(asyncio.DatagramProtocol):
         self.transport = transport
 
         for p in self.processors:
-            p.setup()
+            p.setup(transport)
 
     def connection_lost(self, exc):
         logger.info('Lost UDP connection')
@@ -55,14 +55,29 @@ class FlightComputerReciever(asyncio.DatagramProtocol):
 
 
 class PacketProcessor:
-    def setup(self):
-        pass
+    def __init__(self):
+        self.transport = None
+
+    def setup(self, transport):
+        self.transport = transport
 
     def receive(self, packet):
         pass
 
     def close(self):
-        pass
+        # Leave closing transport to the DatagramProtocol instance
+        self.transport = None
+
+
+class PacketForwarder(PacketProcessor):
+    def __init__(self, target_ip, target_port):
+        super()
+
+        self.target_ip = target_ip
+        self.target_port = target_port
+
+    def receive(self, packet):
+        self.transport.sendto(packet, (self.target_ip, self.target_port))
 
 
 class PacketLogger(PacketProcessor):
@@ -70,6 +85,8 @@ class PacketLogger(PacketProcessor):
     SPEC_IDS = set([0xD0 + i for i in range(3)])
 
     def __init__(self, path_root=None, path_dict=None, fd_dict=None):
+        super()
+    
         if path_root is not None:
             Path(path_root).mkdir(exist_ok=True)
             if path_dict is not None:
@@ -102,7 +119,9 @@ class PacketLogger(PacketProcessor):
         logger.debug('File Descriptors: %s', self.fds)
         self.open_files = {k: None for k in self.fds.keys()}
 
-    def setup(self):
+    def setup(self, transport):
+        super().setup(transport)
+
         self.open_files.update(
             {device_id: os.fdopen(fd, "wb")
              for device_id, fd in self.fds.items()})
@@ -153,7 +172,7 @@ async def receive_packets(ip_addr, port, processors=None, from_file=None):
 
     try:
         if from_file is not None:
-            await start_playback(from_file, speed=2 << 15, port=port)
+            await start_playback(from_file, speed=1, port=port)
             await asyncio.sleep(1.0)  # Wait for buffers to process.
         else:
             await on_con_lost

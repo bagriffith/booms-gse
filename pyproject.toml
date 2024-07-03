@@ -24,7 +24,7 @@ classifiers = [
 dependencies = [
   "click",
   "pyserial",
-  "numpy",
+  "numpy==1.23.1",
   "matplotlib",
   "crcmod",
   "astropy",
@@ -40,7 +40,6 @@ Source = ""
 bgse-imag = "booms_gse.instrument_gse.cli:imager"
 bgse-spec = "booms_gse.instrument_gse.cli:spectrometer"
 bgse-computer = "booms_gse.computer_gse.cli:gse"
-bgse-mm-gse = "booms_gse.computer_gse.cli:mm_gse"
 
 [tool.hatch.version]
 path = "src/booms_gse/__about__.py"

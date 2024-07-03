@@ -3,6 +3,9 @@ from ipaddress import ip_address
 from pathlib import Path
 
 import click
+from bokeh.server.server import Server
+from bokeh.application import Application
+from bokeh.application.handlers import ScriptHandler
 
 from .. import network
 
@@ -41,17 +44,12 @@ def process_pipeline(processors, address, port, from_file, debug):
 
 
 @gse.command()
-@click.argument('target_address', default='0.0.0.0', type=IPAddress())
-@click.argument('target_port', default='20501', type=click.IntRange(0, 65535))
-@click.option('--packet_id', help='Forward only this packet type.')
-def forward(**kwargs):
+@click.argument('target_address', default='127.0.0.1', type=IPAddress())
+@click.argument('target_port', default='20502', type=click.IntRange(0, 65535))
+# @click.option('--packet_id', help='Forward only this packet type.')
+def forward(target_address, target_port):
     """Forward the UDP packets"""
-    raise NotImplementedError('Serial forwarding is not implemented yet.')
-
-    # async def forward_upd(address, port, from_file, target_kwargs=kwargs):
-    #     await
-
-    # return forward_upd
+    return network.PacketForwarder(target_address, target_port)
 
 
 @gse.command()
@@ -89,6 +87,33 @@ def record(path):
     # if kwargs['debug']:
     #     network.logger.setLevel(logging.DEBUG)
     return network.PacketLogger(path)
+
+
+class MMGSEPacket(network.PacketForwarder):
+    def __init__(self):
+        super().__init__('127.0.0.1', 20502)
+        self.server = None
+
+    def setup(self, transport):
+        super().setup(transport)
+
+        mm_gse_path = Path(__file__).parent.parent / 'mm_gse.py'
+        print(mm_gse_path)
+        apps = {'/': Application(ScriptHandler(filename=mm_gse_path))}
+        self.server = Server(apps)
+        self.server.start()
+        url = f"http://localhost:{self.server.port}{self.server.prefix}/"
+        print(f"Bokeh app running at: {url}")
+        # self.server.io_loop.start()
+
+    def stop(self):
+        super().stop()
+        self.server.stop()
+
+
+@gse.command()
+def mm_gse():
+    return MMGSEPacket()
 
 
 if __name__ == '__main__':
