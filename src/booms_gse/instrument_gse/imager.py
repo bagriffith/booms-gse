@@ -946,8 +946,10 @@ class BMSDisplay(tk.Tk):
 
 ########################### END OF BMSDisplay CLASS ##############################
 
-def run_gse(serial_port, baud_rate=None, live=False):
-    if baud_rate is not None:
+def run_gse(serial_port, replay_rate=None, live=False):
+    global thread1
+
+    if replay_rate is None:
         try:
             ser = Serial(serial_port, 230400, timeout=0.1)
         except:
@@ -976,12 +978,12 @@ def run_gse(serial_port, baud_rate=None, live=False):
             print("failed to open input file", serial_port)
             sys.exit(1)
         try:
-            secsPerSecond = float(baud_rate)
+            secsPerSecond = float(replay_rate)
         except:
-            print("invalid seconds per second argument:"+baud_rate)
+            print("invalid seconds per second argument:", replay_rate)
             sys.exit(1)
         if (secsPerSecond <= 0):
-            print("invalid seconds per second argument:"+baud_rate)
+            print("invalid seconds per second argument:", replay_rate)
             sys.exit(1)
 
         print("starting file thread", sys.argv[1], secsPerSecond)
