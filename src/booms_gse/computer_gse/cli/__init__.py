@@ -1,6 +1,7 @@
 import asyncio
 from ipaddress import ip_address
 from pathlib import Path
+import typing as t
 
 import click
 from bokeh.server.server import Server
@@ -24,6 +25,28 @@ class IPAddress(click.ParamType):
         return str(ip)
 
 
+class PacketID(click.IntRange):
+    name = 'packet ID'
+
+    def __init__(self):
+        super().__init__(0, 255)
+    
+    def convert(self, value, param, ctx):
+        if isinstance(value, int):
+            return value
+        
+        try:
+            if value[:2].lower() == "0x":
+                return int(value[2:], 16)
+            elif value[:1] == "0":
+                return int(value, 8)
+            return int(value, 10)
+        except ValueError:
+            self.fail(f"{value!r} is not a valid integer", param, ctx)
+
+PACKET_ID = PacketID()
+
+
 @click.group(chain=True)
 @click.option('-a', '--address', default='0.0.0.0', type=IPAddress())
 @click.option('-p', '--port', default='20501', type=click.IntRange(0, 65535))
@@ -31,6 +54,8 @@ class IPAddress(click.ParamType):
               type=click.Path(file_okay=True,
                               dir_okay=False,
                               path_type=Path))
+@click.option('-s', '--speed', default='1.0',
+              help='Playback speed.', type=click.FloatRange(min_open=0))
 @click.option('--debug', is_flag=True)
 def gse(**kwargs):
     """Receive UDP datagrams and add to parsers"""
@@ -38,9 +63,10 @@ def gse(**kwargs):
 
 
 @gse.result_callback()
-def process_pipeline(processors, address, port, from_file, debug):
+def process_pipeline(processors, address, port, from_file, speed, debug):
     """Sets up the async run."""
-    asyncio.run(network.receive_packets(address, port, processors, from_file))
+    asyncio.run(network.receive_packets(address, port, processors,
+                                        from_file, speed))
 
 
 @gse.command()
@@ -53,11 +79,11 @@ def forward(target_address, target_port):
 
 
 @gse.command()
-@click.argument('packet_id')
+@click.argument('packet_id', type=PACKET_ID)
 @click.argument('target_serial', type=str)
 def serial(packet_id, target_serial):
     """Pass the data from a selected device to a serial port"""
-    raise NotImplementedError('Serial forwarding is not implemented yet.')
+    return network.PacketSerial(packet_id, target_serial)
 
 
 @gse.command()

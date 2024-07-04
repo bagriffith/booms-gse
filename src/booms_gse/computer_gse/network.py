@@ -4,6 +4,7 @@ import pty
 import logging
 from pathlib import Path
 from itertools import chain
+import serial
 
 BOOMS_SERIAL_DIR = Path(
     os.environ.get('BOOMS_SERIAL_DIR', default='/dev/booms'))
@@ -67,6 +68,52 @@ class PacketProcessor:
     def close(self):
         # Leave closing transport to the DatagramProtocol instance
         self.transport = None
+
+
+class PacketSerial(PacketProcessor):
+    SERIAL_CONFIGS = {'imag': {'baudrate': 230400},
+                      'spec': {'baudrate': 38400}}
+
+    def __init__(self, device_id, serial_port):
+        super().__init__()
+
+        self.serial_lock = asyncio.Lock()
+        self.device_id = int(device_id)
+        self.serial_port = serial_port
+        self.serial = None
+
+    def setup(self, transport):
+        if (self.device_id & 0xF0) == 0xC0:
+            serial_kwargs = self.SERIAL_CONFIGS['imag']
+        elif (self.device_id & 0xF0) == 0xD0:
+            serial_kwargs = self.SERIAL_CONFIGS['spec']
+        else:
+            raise RuntimeError(f'Byte id {self.device_id} is not a supported '
+                               'device. Must be imager (0xC*) or spectrometer '
+                               '(0xD*).')
+
+        self.serial = serial.Serial(port=self.serial_port,
+                                    **serial_kwargs)
+
+        if self.serial is None:
+            raise RuntimeError('Serial not initialized.')
+
+    def receive(self, packet):
+        if len(packet) < 16:
+            logger.warning('Packet is less than 16 bytes. Skipped.')
+
+        if packet[4] == self.device_id:
+            if self.serial is None:
+                raise RuntimeError('Serial not initialized.')
+    
+            asyncio.create_task(
+                write_with_lock(self.serial, packet[16:], self.serial_lock)
+            )
+
+    def close(self):
+        if self.serial is not None:
+            self.serial.close()
+        super().close()
 
 
 class PacketForwarder(PacketProcessor):
@@ -159,7 +206,8 @@ class PacketPsuedoSerial(PacketLogger):
         super().__init__(fd_dict=fd_dict)
 
 
-async def receive_packets(ip_addr, port, processors=None, from_file=None):
+async def receive_packets(ip_addr, port, processors=None,
+                          from_file=None, speed=1.0):
     loop = asyncio.get_running_loop()
     on_con_lost = loop.create_future()
 
@@ -172,7 +220,7 @@ async def receive_packets(ip_addr, port, processors=None, from_file=None):
 
     try:
         if from_file is not None:
-            await start_playback(from_file, speed=1, port=port)
+            await start_playback(from_file, speed=speed, port=port)
             await asyncio.sleep(1.0)  # Wait for buffers to process.
         else:
             await on_con_lost
