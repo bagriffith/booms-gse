@@ -307,23 +307,26 @@ class PacketPseudoSerial(PacketLogger):
 class MMGSEPacket(PacketForwarder):
     """Process the packets by forwarding them to a loopback address, and start
     an mm_gse bokeh server listening to that port."""
-    def __init__(self):
+    def __init__(self, show=False):
         """Initialize the processor and set up a forwarding processor to
             the mm_gse server."""
         super().__init__('127.0.0.1', 20502)
         self.server = None
+        self.show = show
 
     def setup(self, transport):
         """Start the packer forwarder and start the bokeh server for mm_gse."""
         super().setup(transport)
 
-        mm_gse_path = Path(__file__).parent.parent / 'mm_gse.py'
+        mm_gse_path = Path(__file__).parent / 'mm_gse.py'
         print(mm_gse_path)
         apps = {'/': Application(ScriptHandler(filename=mm_gse_path))}
         self.server = Server(apps)
         self.server.start()
         url = f"http://localhost:{self.server.port}{self.server.prefix}/"
         print(f"Bokeh app running at: {url}")
+        if self.show:
+            self.server.show('/')
 
     def close(self):
         """Close the packet forwarder and the bokeh server."""

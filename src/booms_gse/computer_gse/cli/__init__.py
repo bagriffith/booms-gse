@@ -118,9 +118,11 @@ def record(path):
 
 
 @gse.command()
-def mm_gse():
+@click.option('--show', is_flag=True, default=False, 
+              help="Launch the gse in a new browser tab.")
+def mm_gse(show):
     """Start an mm_gse bokeh server and forward UDP packets to it."""
-    return network.MMGSEPacket()
+    return network.MMGSEPacket(show=show)
 
 
 if __name__ == '__main__':
