@@ -6,12 +6,12 @@ from .. import spectrometer as bgse_spec
 
 # TODO: Explain what the replay speed actually selects.
 def source_options(f):
-    return click.option('--replay', '-r', default=False,
+    return click.option('--replay', '-r', default=False, is_flag=True,
                         help="Replay from the entire file.")(
            click.option('--speed', '-x', default=1.0,
                         type=click.FloatRange(min=0, min_open=True),
                         help="When replaying use this speed.")(
-           click.option('--serial', '-s', default=False,
+           click.option('--serial', '-s', default=False, is_flag=True,
                         help="The data target is a serial port.")(f)))
 
 
