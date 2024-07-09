@@ -48,8 +48,6 @@ git installed, you can instead use the command.
 git clone https://github.com/bagriffith/booms-gse.git
 ```
 
-Open that directory in the terminal or command line.
-
 Create a virtual environment with `venv` specifically for these
 GSE tools. There are dependencies for old versions of several
 python packages. Without a virtual environment, this creates a
@@ -61,6 +59,8 @@ from your python installation. **Be sure to activate the virtual environment
 every time you run part of this package.**
 For more detailed instructions on virtual environments, refer to the
 [Python docs: 12. Virtual Environments and Packages](https://docs.python.org/3/tutorial/venv.html).
+I suggest creating this virtual environment inside the `booms-gse` source
+directory.
 
 For Linux or Mac
 
@@ -76,10 +76,11 @@ py -m venv .venv
 .venv\Scripts\activate.bat
 ```
 
-Then install the `booms-gse` package with `pip`.
+Open a terminal or command line session inside that downloaded
+`booms-gse` directory. Then install the directory with `pip`.
 
 ```bash
-pip install booms-gse
+pip install .
 ```
 
 To replay the flight computer logged `.bin` files with these tools,
