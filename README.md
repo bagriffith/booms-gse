@@ -49,8 +49,7 @@ git clone https://github.com/bagriffith/booms-gse.git
 ```
 
 Create a virtual environment with `venv` specifically for these
-GSE tools. There are dependencies for old versions of several
-python packages. Without a virtual environment, this creates a
+GSE tools. Without a virtual environment, this creates a
 risk for breaking other python scripts and avoids future updates
 breaking these tools.
 
