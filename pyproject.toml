@@ -22,13 +22,13 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "click",
-  "pyserial",
-  "numpy==1.23.1",
-  "matplotlib",
-  "crcmod",
-  "astropy",
-  "bokeh==2.4.0"
+  "astropy>=6.1.1",
+  "bokeh>=3.5.0",
+  "click>=8.1.7",
+  "crcmod>=1.7",
+  "matplotlib>=3.9.1",
+  "numpy>=2.0.0",
+  "pyserial>=3.5"
 ]
 
 [project.urls]

@@ -703,9 +703,9 @@ limit = 10000
 
 #Sets up data rates plot
 #Date Time
-data_rates_plot = figure(plot_width=400, plot_height=300, x_axis_type='datetime', tools=tools,
+data_rates_plot = figure(width=400, height=300, x_axis_type='datetime', tools=tools,
                          y_axis_label='bytes/s', title='Telemetry data rates')
-data_rates_plotG = figure(plot_width=400, plot_height=300, x_axis_type='linear', tools=tools,
+data_rates_plotG = figure(width=400, height=300, x_axis_type='linear', tools=tools,
                          y_axis_label='bytes/s', title='Telemetry data rates (Gondola Time)',
                          x_axis_label='Elapsed Time (s)')
 
@@ -742,9 +742,9 @@ data_rates_plotG.legend.click_policy = "hide"
 #--------------------------------------------------------------------------------------------------------------------------
 
 #Sets ups event rates plot
-event_rates_plot = figure(plot_width=900, plot_height=300, x_axis_type='datetime', tools=tools,
+event_rates_plot = figure(width=900, height=300, x_axis_type='datetime', tools=tools,
                          y_axis_label='events/s', title='Imager event rates')
-event_rates_plotG = figure(plot_width=900, plot_height=300, x_axis_type='linear', tools=tools,
+event_rates_plotG = figure(width=900, height=300, x_axis_type='linear', tools=tools,
                          y_axis_label='events/s', title='Imager event rates (Gondola Time)',
                          x_axis_label='Elapsed Time (s)')
 
@@ -772,9 +772,9 @@ event_rates_plotG.legend.click_policy = "hide"
 
 
 #Sets up the GPS/PPS plot
-gps_to_pps_plot = figure(plot_width=900, plot_height=200, x_axis_type='datetime', tools=tools,
+gps_to_pps_plot = figure(width=900, height=200, x_axis_type='datetime', tools=tools,
                          y_axis_label='seconds', title='Gondola time of PPS signal minus preceding GPS position packet')
-gps_to_pps_plotG = figure(plot_width=900, plot_height=200, x_axis_type='linear', tools=tools,
+gps_to_pps_plotG = figure(width=900, height=200, x_axis_type='linear', tools=tools,
                          y_axis_label='milliseconds', title='Gondola time of PPS signal minus preceding GPS position packet (Gondola Time)',
                          x_axis_label='Elapsed Time (s)')
 
@@ -790,9 +790,9 @@ gps_to_pps_plotG.line('dateG', 'gps_to_pps', source=timing, line_color=Colorblin
 #--------------------------------------------------------------------------------------------------------------------------
 
 #Sets up the PPS to SBC plot
-pps_to_sbc_plot = figure(plot_width=900, plot_height=200, x_axis_type='datetime', tools=tools,
+pps_to_sbc_plot = figure(width=900, height=200, x_axis_type='datetime', tools=tools,
                          y_axis_label='seconds', title='System clock minus GPS clock')
-pps_to_sbc_plotG = figure(plot_width=900, plot_height=200, x_axis_type='linear', tools=tools,
+pps_to_sbc_plotG = figure(width=900, height=200, x_axis_type='linear', tools=tools,
                          y_axis_label='milliseconds', title='System clock minus GPS clock (Gondola Time)',
                          x_axis_label='Elapsed Time (s)')
 
@@ -807,9 +807,9 @@ pps_to_sbc_plotG.line('dateG', 'pps_to_sbc', source=timing, line_color=Colorblin
 #--------------------------------------------------------------------------------------------------------------------------
 
 #Sets up the magnetometer data plot
-mag_plot = figure(plot_width=900, plot_height=200, x_axis_type='datetime', tools=tools,
+mag_plot = figure(width=900, height=200, x_axis_type='datetime', tools=tools,
                     y_axis_label='B Field (uT)', title='Magnetometer Data')
-mag_plotG = figure(plot_width=900, plot_height=200, x_axis_type='datetime', tools=tools,
+mag_plotG = figure(width=900, height=200, x_axis_type='datetime', tools=tools,
                     y_axis_label='B Field (uT)', title='Magnetometer Data (Gondola Time)',
                     x_axis_label='Elapsed Time (s)')
 
