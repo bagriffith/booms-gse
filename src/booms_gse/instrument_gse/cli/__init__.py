@@ -24,8 +24,11 @@ def gse():
 @click.argument('data_source', type=str)
 @source_options
 def imager(data_source, **kwargs):
-    rate = kwargs['speed'] if kwargs['replay'] else None 
-    bgse_imag.run_gse(data_source, rate, live=kwargs['replay'])
+    if kwargs['serial']:
+        rate = None
+    else:
+        rate = kwargs['speed'] if kwargs['replay'] else 999_999_999.
+    bgse_imag.run_gse(data_source, rate, live=not kwargs['replay'])
 
 
 @gse.command()
@@ -34,9 +37,12 @@ def imager(data_source, **kwargs):
 @click.option('--save', default=False,
               help="Save the high resolution spectra to pd1.txt and pd2.txt")
 def spectrometer(data_source, **kwargs):
-    rate = kwargs['speed'] if kwargs['replay'] else None 
+    if kwargs['serial']:
+        rate = None
+    else:
+        rate = kwargs['speed'] if kwargs['replay'] else 999_999_999.
     bgse_spec.run_gse(data_source, rate,
-                      save=kwargs['save'], live=kwargs['replay'])
+                      save=kwargs['save'], live=not kwargs['replay'])
 
 
 if __name__ == '__main__':

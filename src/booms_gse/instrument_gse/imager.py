@@ -987,7 +987,7 @@ def run_gse(serial_port, replay_rate=None, live=False):
             sys.exit(1)
 
         print("starting file thread", sys.argv[1], secsPerSecond)
-        thread1 = FileRead(filePtr, secsPerSecond)
+        thread1 = FileRead(filePtr, secsPerSecond, live=live)
         thread1.datastreamActive = True
         thread1.start()
         print("starting display")
